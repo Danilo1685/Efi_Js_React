@@ -1,6 +1,7 @@
 import { Formik } from "formik";
 import * as Yup from "yup";
 import { useState, useEffect } from "react";
+import { Button } from "primereact/button";
 
 const Accesorios = () => {
   const [accesorios, setAccesorios] = useState([]);
@@ -103,9 +104,13 @@ const Accesorios = () => {
                       <div className="text-danger">{errors.nombre}</div>
                     )}
                   </div>
-                  <button type="submit" className="btn btn-success" disabled={!isValid}>
-                    {editing ? "Actualizar" : "Guardar"}
-                  </button>
+                  <Button
+                    label={editing ? "Actualizar" : "Guardar"}
+                    icon="pi pi-check" // Puedes agregar un ícono si lo deseas
+                    className="p-button-success"
+                    disabled={!isValid}
+                    type="submit"
+                  />
                 </form>
               )}
             </Formik>
@@ -118,12 +123,19 @@ const Accesorios = () => {
                 <li key={accesorio.id} className="list-group-item d-flex justify-content-between align-items-center">
                   <span>{accesorio.nombre}</span>
                   <div>
-                    <button onClick={() => handleEditar(accesorio.id)} className="btn btn-warning btn-sm me-2">
-                      Editar
-                    </button>
-                    <button onClick={() => handleEliminar(accesorio.id)} className="btn btn-danger btn-sm">
-                      Eliminar
-                    </button>
+                <Button
+                  label="Editar"
+                  icon="pi pi-pencil"
+                  className="p-button-warning p-button-sm me-2"
+                  onClick={() => handleEditar(accesorio.id)}
+                />
+                <Button
+                  label="Eliminar"
+                  icon="pi pi-trash"
+                  className="p-button-danger p-button-sm"
+                  onClick={() => handleEliminar(accesorio.id)}
+                />
+
                   </div>
                 </li>
               ))}

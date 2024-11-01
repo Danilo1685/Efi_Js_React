@@ -1,19 +1,20 @@
 import { Formik } from "formik";
 import { useState, useEffect } from "react";
 import * as Yup from 'yup';
+import { Button } from 'primereact/button';
 
 const CreateUser = () => {
   const [users, setUsers] = useState([]);
-  const token = ''; 
+  const [editing, setEditing] = useState(null);
+  const [message, setMessage] = useState("");
+  const token = localStorage.getItem("token"); // Asegúrate de obtener el token del almacenamiento local.
 
   const ValidationSchema = Yup.object().shape({
     username: Yup.string()
       .required('Este campo es requerido')
-      .min(5, 'El username debe tener mínimo 5 caracteres')
       .max(50, 'El username no debe ser mayor a 50 caracteres'),
     password: Yup.string()
       .required('Este campo es requerido')
-      .min(5, 'La contraseña debe tener mínimo 5 caracteres')
       .max(50, 'La contraseña no debe ser mayor a 50 caracteres'),
     admin: Yup.number()
       .required('Este campo es requerido')
@@ -21,11 +22,16 @@ const CreateUser = () => {
   });
 
   const fetchUsers = async () => {
-    const response = await fetch('http://127.0.0.1:5000/users', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    const data = await response.json();
-    setUsers(data);
+    try {
+      const response = await fetch('http://127.0.0.1:5000/users', {
+        headers: { 'Authorization': ` ${token}` },
+      });
+      const data = await response.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setUsers([]);
+    }
   };
 
   useEffect(() => {
@@ -36,29 +42,65 @@ const CreateUser = () => {
     const bodyRegisterUser = {
       username: values.username,
       password: values.password,
-      is_admin: values.admin === 1,
+      is_admin: parseInt(values.admin),
     };
+    console.log(values)
+    const url = editing 
+      ? `http://127.0.0.1:5000/users/${editing}/update` 
+      : 'http://127.0.0.1:5000/users';
 
-    const response = await fetch('http://127.0.0.1:5000/users', {
-      method: 'POST',
+    const method = editing ? 'PUT' : 'POST'; 
+
+    const response = await fetch(url, {
+      method,
       body: JSON.stringify(bodyRegisterUser),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': ` ${token}`
       }
     });
+
     if (response.ok) {
       fetchUsers();
       resetForm();
+      setEditing(null);
+      setMessage("Usuario guardado exitosamente.");
+    } else {
+      setMessage("Error al guardar el usuario.");
+    }
+  };
+
+  const handleEditar = (id) => {
+    const userToEdit = users.find(user => user.id === id);
+    if (userToEdit) {
+      setEditing(userToEdit.id);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/users/${id}/delete`, {
+        method: "DELETE",
+        headers: { 'Authorization': ` ${token}` },
+      });
+      
+      if (!response.ok) throw new Error("Error al eliminar el usuario");
+      
+      fetchUsers();
+      setMessage("Usuario eliminado exitosamente.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Error al eliminar el usuario.");
     }
   };
 
   return (
     <div className="container">
-      <h4>Crear Nuevo Usuario</h4>
+      <h4>{editing ? "Editar Usuario" : "Crear Nuevo Usuario"}</h4>
       <Formik
+        enableReinitialize
         initialValues={{
-          username: '',
+          username: editing ? users.find(user => user.id === editing)?.username : '',
           password: '',
           admin: 0,
         }}
@@ -115,18 +157,36 @@ const CreateUser = () => {
                 <div className="text-danger">{errors.admin}</div>
               )}
             </div>
-            <button type="submit" disabled={!isValid}>
-              Crear Usuario
-            </button>
+            <Button label={editing ? "Actualizar Usuario" : "Crear Usuario"} 
+                icon="pi pi-check" 
+                type="submit" 
+                disabled={!isValid} 
+                className="p-button-success" 
+            />
+            
           </form>
         )}
       </Formik>
+
+      {message && <div className="alert alert-info mt-3">{message}</div>}
 
       <h4>Lista de Usuarios</h4>
       <ul>
         {users.map(user => (
           <li key={user.id}>
             <span>{user.username} - {user.is_admin ? "Admin" : "Usuario"}</span>
+            <Button 
+              icon="pi pi-pencil" 
+              className="p-button-warning p-button-sm me-2" 
+              onClick={() => handleEditar(user.id)} 
+              label="Editar" 
+          />
+          <Button 
+              icon="pi pi-trash" 
+              className="p-button-danger p-button-sm" 
+              onClick={() => handleEliminar(user.id)} 
+              label="Eliminar" 
+          />         
           </li>
         ))}
       </ul>
